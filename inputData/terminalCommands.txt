@@ -1,0 +1,24 @@
+export NODE_PATH="/home/seed/conclave/jiff/node_modules"
+cd conclave
+node server.js
+
+eval "$(pyenv init --path)"
+pyenv global 3.5.5
+python3 -V
+cd conclave
+export PYTHONPATH=$PYTHONPATH:/home/seed/conclave/conclave
+python3 protocol.py party1/config_one.json
+
+eval "$(pyenv init --path)"
+pyenv global 3.5.5
+python3 -V
+cd conclave
+export PYTHONPATH=$PYTHONPATH:/home/seed/conclave/conclave
+python3 protocol.py party2/config_two.json
+
+eval "$(pyenv init --path)"
+pyenv global 3.5.5
+python3 -V
+cd conclave
+export PYTHONPATH=$PYTHONPATH:/home/seed/conclave/conclave
+python3 protocol.py party3/config_three.json
