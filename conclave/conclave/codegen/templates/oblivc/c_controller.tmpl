@@ -1,0 +1,122 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <obliv.h>
+#include <obliv.oh>
+
+#include "workflow.h"
+
+void loadData({{{NUM_TYPE}}} mat[ROWS][COLS], char *src);
+void loadMockData({{{NUM_TYPE}}} mat[ROWS][COLS]);
+void displayData(protocolIo *io);
+void writeData(protocolIo *io);
+int countRows(char *src, int cols);
+
+
+int main(int argc, char **argv)
+{
+	const char *remote_host = strtok(argv[1], ":");
+ 	const char *port = strtok(NULL, ":");
+  	ProtocolDesc pd;
+	protocolIo io;
+	io.out = "{{{OUTPUT_PATH}}}";
+	char *inSrc = "{{{INPUT_PATH}}}";
+    io.in.cols = COLS;
+    io.in.rows = ROWS;
+
+    loadData(&io.in.mat, inSrc);
+    displayData(&io);
+
+	printf("Connecting to %s on port %s ...\n", remote_host, port);
+    if("{{{PID}}}" == "1")
+    {
+      if(protocolAcceptTcp2P(&pd,port)!=0)
+      {
+        printf("Exiting computation \n");
+        exit(1);
+      }
+    }
+    else
+    {
+      if(protocolConnectTcp2P(&pd,remote_host,port)!=0)
+      {
+        printf("Exiting computation \n");
+        exit(1);
+      }
+    }
+
+	setCurrentParty(&pd,{{{PID}}});
+
+  	execYaoProtocol(&pd,protocol,&io);
+  	cleanupProtocol(&pd);
+
+    {{{WRITE_CODE}}}
+
+  	return 0;
+
+}
+
+void writeData(protocolIo *io)
+{
+	FILE *fp;
+	fp = fopen(io->out, "w+");
+
+	for (int i = 0; i < io->out_rows; i++)
+	{
+		for (int j = 0; j < io->out_cols - 1; j++)
+		{
+			fprintf(fp, "%{{{TYPE}}},", io->ret[i][j]);
+		}
+		fprintf(fp, "%{{{TYPE}}}\n", io->ret[i][io->out_cols - 1]);
+	}
+	fclose(fp);
+}
+
+void displayData(protocolIo *io)
+{
+    for (int i = 0; i < io->out_rows; i++)
+    {
+        for (int j = 0; j < io->out_cols; j++)
+        {
+            printf("|  %i|%i : %{{{TYPE}}}  |", i, j, io->ret[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void loadData({{{NUM_TYPE}}} mat[ROWS][COLS], char *src)
+{
+  	char buffer[1024];
+  	char *record, *line;
+
+	FILE *fstream = fopen(src, "r");
+
+	if (fstream == NULL)
+	{
+	      printf("\n file opening failed ");
+	}
+
+	// skip header
+	fgets(buffer, sizeof(buffer), fstream);
+
+	for (int i = 0; i < ROWS; i++)
+	{
+		if ((line=fgets(buffer,sizeof(buffer),fstream))!=NULL)
+		{
+			record = strtok(line, ",");
+			for (int j = 0; j < COLS; j++)
+			{
+				if (record != NULL)
+				{
+					mat[i][j] = {{{TYPE_CONV_STR}}}(record);
+					record = strtok(NULL,",");
+				}
+				else
+				{
+					printf("No record here.");
+				}
+			}
+		}
+	}
+	fclose(fstream);
+}
